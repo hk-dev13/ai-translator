@@ -1,6 +1,6 @@
 # AI Web Translator
 
-[![Deploy Backend to Cloud Run](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml/badge.svg)](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml)
+[![Deploy Backend to Cloud Run](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml/badge.svg?branch=main)](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml)
 
 A powerful Chrome extension for translating web pages using AI, with secure and scalable backend middleware.
 
