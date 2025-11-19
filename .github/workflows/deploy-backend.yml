@@ -1,0 +1,35 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: chrome-translator-dev
+
+    - name: Deploy to Cloud Run
+      run: |
+        cd backend
+        gcloud run deploy translator-backend \
+          --source . \
+          --platform managed \
+          --region asia-southeast1 \
+          --allow-unauthenticated \
+          --memory 512Mi \
+          --cpu 1 \
+          --max-instances 10 \
+          --set-env-vars REDIS_URL=${{ secrets.REDIS_URL }}
