@@ -114,6 +114,26 @@ async function setCache(key, value, ttl = 3600) { // 1 hour TTL
     if (redis) await redis.setex(key, ttl, value);
 }
 
+// Helper function for DeepL translation with timeout
+async function translateWithDeepL(text, targetLang, timeout = 5000) {
+    return new Promise(async (resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error('DeepL timeout'));
+        }, timeout);
+
+        try {
+            const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
+            const deeplLang = langMap[targetLang] || targetLang;
+            const result = await deeplTranslator.translateText(text, null, deeplLang);
+            clearTimeout(timer);
+            resolve(result.text);
+        } catch (error) {
+            clearTimeout(timer);
+            reject(error);
+        }
+    });
+}
+
 // Endpoint translate (support single text or batch texts)
 app.post('/translate', async (req, res) => {
     try {
@@ -146,10 +166,7 @@ app.post('/translate', async (req, res) => {
                             break;
                         case 'deepl':
                             try {
-                                const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
-                                const deeplLang = langMap[targetLang] || targetLang;
-                                const deeplResult = await deeplTranslator.translateText(t, null, deeplLang);
-                                result = deeplResult.text;
+                                result = await translateWithDeepL(t, targetLang);
                             } catch (deeplError) {
                                 // If DeepL fails due to rate limit or overload, fallback to Google
                                 console.log('DeepL failed, falling back to Google:', deeplError.message);
@@ -178,10 +195,7 @@ app.post('/translate', async (req, res) => {
                     break;
                 case 'deepl':
                     try {
-                        const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
-                        const deeplLang = langMap[targetLang] || targetLang;
-                        const deeplResult = await deeplTranslator.translateText(text, null, deeplLang);
-                        translation = deeplResult.text;
+                        translation = await translateWithDeepL(text, targetLang);
                     } catch (deeplError) {
                         // If DeepL fails due to rate limit or overload, fallback to Google
                         console.log('DeepL failed, falling back to Google:', deeplError.message);
