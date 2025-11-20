@@ -18,7 +18,7 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: ['chrome-extension://lnnmebafcegjhckaefmjbabocghhhend'] })); // Ganti dengan ID ekstensi Anda
+app.use(cors({ origin: ['chrome-extension://lnnmebafcegjhckaefmjbabocghhhend'] })); 
 app.use(express.json({ limit: '1mb' }));
 
 // Rate limiting: 10 requests per minute per IP
@@ -65,7 +65,7 @@ function validateInput(text, targetLang, provider) {
     if (!targetLang || typeof targetLang !== 'string') {
         throw new Error('Invalid targetLang');
     }
-    if (!['google'].includes(provider)) { // Tambah provider lain jika perlu
+    if (!['openai', 'google', 'deepl'].includes(provider)) {
         throw new Error('Invalid provider');
     }
 }

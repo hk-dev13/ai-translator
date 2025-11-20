@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "AI Web Translator",
-    "version": "1.0",
+    "version": "2.0",
     "description": "Translates the current web page using AI.",
     "permissions": [
         "activeTab",
@@ -11,9 +11,9 @@
     "action": {
         "default_popup": "popup.html",
         "default_icon": {
-            "16": "images/ait16.png",
-            "48": "images/ait48.png",
-            "128": "images/ait128.png"
+            "16": "assets/logo_app/ai16.png",
+            "48": "assets/logo_app/ai48.png",
+            "128": "assets/logo_app/ai128.png"
         }
     },
     "background": {
@@ -26,8 +26,8 @@
         }
     ],
     "icons": {
-        "16": "images/ait16.png",
-        "48": "images/ait48.png",
-        "128": "images/ait128.png"
+        "16": "assets/logo_app/ai16.png",
+        "48": "assets/logo_app/ai48.png",
+        "128": "assets/logo_app/ai128.png"
     }
 }
