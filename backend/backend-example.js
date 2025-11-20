@@ -21,10 +21,10 @@ app.use(helmet());
 app.use(cors({ origin: ['chrome-extension://lnnmebafcegjhckaefmjbabocghhhend'] })); 
 app.use(express.json({ limit: '1mb' }));
 
-// Rate limiting: 10 requests per minute per IP
+// Rate limiting: 30 requests per minute per IP
 const limiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 10,
+    max: 30,
     message: 'Too many requests, please try again later.'
 });
 app.use(limiter);

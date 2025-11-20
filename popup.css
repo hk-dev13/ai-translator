@@ -393,25 +393,82 @@ input:checked + .theme-slider:before {
 }
 
 /* History Section */
-.history-section {
+#history-section {
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px solid #e1e8ed;
 }
 
-[data-theme="dark"] .history-section {
+[data-theme="dark"] #history-section {
     border-top-color: #7f8c8d;
+}
+
+.view-history-btn {
+    width: 100%;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    color: #555;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-history-btn:hover {
+    background: #e9ecef;
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .view-history-btn {
+    background: #34495e;
+    border-color: #7f8c8d;
+    color: #bdc3c7;
+}
+
+[data-theme="dark"] .view-history-btn:hover {
+    background: #7f8c8d;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .history-section h3 {
     font-size: 14px;
     color: #555;
-    margin: 0 0 10px 0;
+    margin: 0;
     font-weight: 600;
 }
 
 [data-theme="dark"] .history-section h3 {
     color: #bdc3c7;
+}
+
+.clear-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.clear-btn:hover {
+    background: #c0392b;
+}
+
+[data-theme="dark"] .clear-btn {
+    background: #e74c3c;
+}
+
+[data-theme="dark"] .clear-btn:hover {
+    background: #c0392b;
 }
 
 #history-list {
@@ -465,6 +522,32 @@ input:checked + .theme-slider:before {
 /* Micro-animations */
 .history-item {
     animation: fadeInUp 0.3s ease-out;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.history-item:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+[data-theme="dark"] .history-item:hover {
+    background-color: rgba(102, 126, 234, 0.2);
+}
+
+.history-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.history-details {
+    font-size: 11px;
+    color: #666;
+    font-weight: normal;
+}
+
+[data-theme="dark"] .history-details {
+    color: #7f8c8d;
 }
 
 @keyframes fadeInUp {

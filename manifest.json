@@ -16,6 +16,7 @@
             "128": "assets/logo_app/ai128.png"
         }
     },
+    "options_page": "history.html",
     "background": {
         "service_worker": "background.js"
     },

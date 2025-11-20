@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Translation History - AI Translator</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        body {
+            width: 400px;
+            min-height: 500px;
+            padding: 20px;
+        }
+        .history-page {
+            max-width: none;
+        }
+        .history-header {
+            margin-bottom: 20px;
+        }
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover {
+            background: #5a67d8;
+        }
+        #history-list {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" id="back-btn">Back to Translator</button>
+        <div class="history-header">
+            <h2>Translation History</h2>
+            <button id="clear-history-page" class="clear-btn">Clear All</button>
+        </div>
+        <ul id="history-list-page"></ul>
+    </div>
+    <script src="history.js"></script>
+</body>
+</html>

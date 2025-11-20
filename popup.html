@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>AI Translator</title>
     <link rel="stylesheet" href="popup.css">
 </head>
@@ -65,9 +66,8 @@
             <div class="spinner" id="spinner" aria-hidden="true"></div>
             <p id="status" aria-live="polite" role="status"></p>
         </div>
-        <div class="history-section">
-            <h3>Recent Translations</h3>
-            <ul id="history-list"></ul>
+        <div id="history-section">
+            <button id="view-history" class="view-history-btn" style="display: none;">View History</button>
         </div>
     </div>
     <script src="popup.js"></script>

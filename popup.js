@@ -33,14 +33,17 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.storage.sync.set({ translationHistory: translationHistory });
     }
 
-    function addToHistory(fromLang, toLang, provider) {
+    function addToHistory(fromLang, toLang, provider, pageUrl = '') {
         const now = new Date();
         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const domain = pageUrl ? new URL(pageUrl).hostname : 'Unknown';
+
         translationHistory.unshift({
             from: fromLang,
             to: toLang,
             provider: provider,
-            time: timeString
+            time: timeString,
+            domain: domain
         });
         // Keep only last 10
         if (translationHistory.length > 10) {
@@ -51,17 +54,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHistory() {
-        historyList.innerHTML = '';
-        translationHistory.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="history-item">
-                    <span class="history-lang">${item.from} → ${item.to}</span>
-                    <span class="history-time">${item.time}</span>
-                </div>
-            `;
-            historyList.appendChild(li);
-        });
+        const viewHistoryBtn = document.getElementById('view-history');
+        if (translationHistory.length > 0) {
+            viewHistoryBtn.style.display = 'block';
+        } else {
+            viewHistoryBtn.style.display = 'none';
+        }
+    }
+
+    function repeatTranslation(item) {
+        // Set target language
+        targetLangSelect.value = item.to;
+        // Set provider
+        selectedProvider = item.provider;
+        const providerData = {
+            openai: { icon: 'assets/logo_ai/openAI.png', text: 'OpenAI' },
+            google: { icon: 'assets/logo_ai/google.png', text: 'Google' },
+            deepl: { icon: 'assets/logo_ai/deepL.png', text: 'DeepL' }
+        };
+        const data = providerData[selectedProvider];
+        selectSelected.innerHTML = `<img src="${data.icon}" alt="${data.text}" class="provider-icon"><span>${data.text}</span>`;
+        chrome.storage.sync.set({ selectedProvider: selectedProvider });
+
+        // Trigger translation
+        translateButton.click();
     }
 
     // Load settings from storage
@@ -87,6 +103,33 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.setAttribute('data-theme', darkModeEnabled ? 'dark' : 'light');
         }
         loadHistory();
+    });
+
+    // View history button
+    const viewHistoryBtn = document.getElementById('view-history');
+    viewHistoryBtn.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
+    });
+
+    // Handle messages from history page
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'repeatTranslation') {
+            const item = request.item;
+            repeatTranslation(item);
+        } else if (request.action === 'openPopup') {
+            // Try to open the popup
+            if (chrome.action && chrome.action.openPopup) {
+                chrome.action.openPopup();
+            } else {
+                // Fallback: create a new popup window
+                chrome.windows.create({
+                    url: chrome.runtime.getURL('popup.html'),
+                    type: 'popup',
+                    width: 300,
+                    height: 500
+                });
+            }
+        }
     });
 
     // Custom select functionality
@@ -158,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Offline detection
     function updateOnlineStatus() {
         if (!navigator.onLine) {
-            updateStatus('⚠️ You are currently offline. Translation requires internet connection.', 'error');
+            updateStatus('Warning: You are currently offline. Translation requires internet connection.', 'error');
         } else {
             updateStatus('', 'info'); // Clear status when back online
         }
@@ -190,25 +233,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     (response) => {
                         spinner.style.display = 'none';
                         if (chrome.runtime.lastError) {
-                            updateStatus('❌ Connection failed. Please reload the page and try again.', 'error');
+                            updateStatus('Error: Connection failed. Please reload the page and try again.', 'error');
                             console.error(chrome.runtime.lastError.message);
                         } else if (response) {
-                            if (response.status.includes('Error') || response.status.includes('Failed')) {
-                                updateStatus('❌ ' + response.status, 'error');
+                            if (response.status && (response.status.includes('Error') || response.status.includes('Failed') || response.status.includes('Too many requests'))) {
+                                if (response.status.includes('Too many requests')) {
+                                    updateStatus('Error: Rate limit exceeded. Please wait a minute before trying again.', 'error');
+                                } else {
+                                    updateStatus('Error: ' + response.status, 'error');
+                                }
                             } else {
-                                updateStatus('✅ ' + response.status, 'success');
+                                updateStatus('Success: ' + response.status, 'success');
                                 // Add to history
-                                const fromLang = 'Auto'; // Could be improved to detect actual language
+                                const fromLang = 'Page'; // Page content translation
                                 const toLang = targetLang;
-                                addToHistory(fromLang, toLang, aiProvider);
+                                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                    const pageUrl = tabs[0]?.url || '';
+                                    addToHistory(fromLang, toLang, aiProvider, pageUrl);
+                                });
                             }
                         } else {
-                            updateStatus('❌ An unknown error occurred.', 'error');
+                            updateStatus('Error: An unknown error occurred.', 'error');
                         }
                     }
                 );
             } else {
-                updateStatus('❌ Cannot access the active tab.', 'error');
+                updateStatus('Error: Cannot access the active tab.', 'error');
                 spinner.style.display = 'none';
             }
         });
