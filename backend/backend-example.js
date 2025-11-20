@@ -53,24 +53,42 @@ let googleTranslate;
 let deeplTranslator;
 let redis;
 (async () => {
+    // Initialize Google Translate
     try {
-        // Google Translate
         const credentials = await getGoogleCredentials();
         googleTranslate = new Translate({ credentials });
         console.log('Google Translate initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize Google Translate:', error.message);
+        // Continue without Google if it fails
+    }
 
-        // DeepL
+    // Initialize DeepL
+    try {
         const deeplApiKey = await getDeepLApiKey();
         deeplTranslator = new deepl.Translator(deeplApiKey);
         console.log('DeepL initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize DeepL:', error.message);
+        // Continue without DeepL if it fails
+    }
 
-        // Inisialisasi Redis (Upstash)
-        redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379'); // Set REDIS_URL di env
+    // Initialize Redis
+    try {
+        redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
         console.log('Redis connected');
     } catch (error) {
-        console.error('Failed to initialize:', error);
+        console.error('Failed to connect to Redis:', error.message);
+        // Continue without Redis if it fails
+    }
+
+    // Exit only if both translators failed
+    if (!googleTranslate && !deeplTranslator) {
+        console.error('No translation providers available. Exiting...');
         process.exit(1);
     }
+
+    console.log('Backend initialization complete');
 })();
 
 // Validasi input
