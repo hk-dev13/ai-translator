@@ -1,6 +1,6 @@
 // backend-example.js - Kode untuk backend middleware di Google Cloud Run (Node.js)
 
-// Install dependencies: npm init, npm install express cors helmet express-rate-limit @google-cloud/translate @google-cloud/secret-manager
+// Install dependencies: npm init, npm install express cors helmet express-rate-limit @google-cloud/translate @google-cloud/secret-manager deepl-node
 
 const express = require('express');
 const cors = require('cors');
@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { Translate } = require('@google-cloud/translate').v2;
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
+const deepl = require('deepl-node');
 const Redis = require('ioredis');
 
 const app = express();
@@ -29,8 +30,8 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Fungsi untuk ambil credentials dari Secret Manager (JSON service account key)
-async function getCredentials() {
+// Fungsi untuk ambil credentials dari Secret Manager
+async function getGoogleCredentials() {
     const client = new SecretManagerServiceClient();
     const name = 'projects/chrome-translator-dev/secrets/GOOGLE_TRANSLATE_API_KEY/versions/latest';
 
@@ -39,14 +40,29 @@ async function getCredentials() {
     return JSON.parse(jsonString);
 }
 
-// Inisialisasi Google Translate dengan credentials dari Secret Manager
-let translate;
+async function getDeepLApiKey() {
+    const client = new SecretManagerServiceClient();
+    const name = 'projects/577398517518/secrets/DEEPL_API_KEY/versions/latest';
+
+    const [version] = await client.accessSecretVersion({ name });
+    return version.payload.data.toString();
+}
+
+// Inisialisasi translators
+let googleTranslate;
+let deeplTranslator;
 let redis;
 (async () => {
     try {
-        const credentials = await getCredentials();
-        translate = new Translate({ credentials });
+        // Google Translate
+        const credentials = await getGoogleCredentials();
+        googleTranslate = new Translate({ credentials });
         console.log('Google Translate initialized successfully');
+
+        // DeepL
+        const deeplApiKey = await getDeepLApiKey();
+        deeplTranslator = new deepl.Translator(deeplApiKey);
+        console.log('DeepL initialized successfully');
 
         // Inisialisasi Redis (Upstash)
         redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379'); // Set REDIS_URL di env
@@ -101,11 +117,25 @@ app.post('/translate', async (req, res) => {
             // Batch translate with cache
             const translations = await Promise.all(
                 texts.map(async (t) => {
-                    const cacheKey = `translate:${t}:${targetLang}`;
+                    const cacheKey = `translate:${t}:${targetLang}:${provider}`;
                     let cached = await getCache(cacheKey);
                     if (cached) return cached;
 
-                    const [result] = await translate.translate(t, targetLang);
+                    let result;
+                    switch (provider) {
+                        case 'google':
+                            [result] = await googleTranslate.translate(t, targetLang);
+                            break;
+                        case 'deepl':
+                            const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
+                            const deeplLang = langMap[targetLang] || targetLang;
+                            const deeplResult = await deeplTranslator.translateText(t, null, deeplLang);
+                            result = deeplResult.text;
+                            break;
+                        default:
+                            throw new Error(`Unsupported provider: ${provider}`);
+                    }
+
                     await setCache(cacheKey, result);
                     return result;
                 })
@@ -113,11 +143,25 @@ app.post('/translate', async (req, res) => {
             res.json({ translations });
         } else {
             // Single translate with cache
-            const cacheKey = `translate:${text}:${targetLang}`;
+            const cacheKey = `translate:${text}:${targetLang}:${provider}`;
             let cached = await getCache(cacheKey);
             if (cached) return res.json({ translation: cached });
 
-            const [translation] = await translate.translate(text, targetLang);
+            let translation;
+            switch (provider) {
+                case 'google':
+                    [translation] = await googleTranslate.translate(text, targetLang);
+                    break;
+                case 'deepl':
+                    const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
+                    const deeplLang = langMap[targetLang] || targetLang;
+                    const deeplResult = await deeplTranslator.translateText(text, null, deeplLang);
+                    translation = deeplResult.text;
+                    break;
+                default:
+                    throw new Error(`Unsupported provider: ${provider}`);
+            }
+
             await setCache(cacheKey, translation);
             res.json({ translation });
         }
