@@ -145,10 +145,16 @@ app.post('/translate', async (req, res) => {
                             [result] = await googleTranslate.translate(t, targetLang);
                             break;
                         case 'deepl':
-                            const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
-                            const deeplLang = langMap[targetLang] || targetLang;
-                            const deeplResult = await deeplTranslator.translateText(t, null, deeplLang);
-                            result = deeplResult.text;
+                            try {
+                                const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
+                                const deeplLang = langMap[targetLang] || targetLang;
+                                const deeplResult = await deeplTranslator.translateText(t, null, deeplLang);
+                                result = deeplResult.text;
+                            } catch (deeplError) {
+                                // If DeepL fails due to rate limit or overload, fallback to Google
+                                console.log('DeepL failed, falling back to Google:', deeplError.message);
+                                [result] = await googleTranslate.translate(t, targetLang);
+                            }
                             break;
                         default:
                             throw new Error(`Unsupported provider: ${provider}`);
@@ -171,10 +177,16 @@ app.post('/translate', async (req, res) => {
                     [translation] = await googleTranslate.translate(text, targetLang);
                     break;
                 case 'deepl':
-                    const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
-                    const deeplLang = langMap[targetLang] || targetLang;
-                    const deeplResult = await deeplTranslator.translateText(text, null, deeplLang);
-                    translation = deeplResult.text;
+                    try {
+                        const langMap = { 'id': 'id', 'es': 'es', 'fr': 'fr', 'de': 'de', 'ja': 'ja', 'en': 'en' };
+                        const deeplLang = langMap[targetLang] || targetLang;
+                        const deeplResult = await deeplTranslator.translateText(text, null, deeplLang);
+                        translation = deeplResult.text;
+                    } catch (deeplError) {
+                        // If DeepL fails due to rate limit or overload, fallback to Google
+                        console.log('DeepL failed, falling back to Google:', deeplError.message);
+                        [translation] = await googleTranslate.translate(text, targetLang);
+                    }
                     break;
                 default:
                     throw new Error(`Unsupported provider: ${provider}`);
