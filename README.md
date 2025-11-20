@@ -1,8 +1,30 @@
-# AI Web Translator
+<p align="center">
+  <a href="https://github.com/hk-dev13/ai-translator.git">
+    <img src="assets/logo_app/ai128.png" width="150" alt="AI Translator Logo" style="border-radius: 20px;">
+  </a>
+</p>
 
+<h1 align="center">
+AI Web Translator
+</h1>
+
+<h2 align="center">A powerful Chrome extension for translating web pages using AI, with secure and scalable backend middleware.</h2>
+
+<div align="center">
+
+![Version](https://img.shields.io/github/v/tag/hk-dev13/ai-translator?label=version&color=6f42c1)
 [![Deploy Backend to Cloud Run](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml/badge.svg?branch=main)](https://github.com/hk-dev13/ai-translator/actions/workflows/deploy-backend.yml)
+![License](https://img.shields.io/github/license/hk-dev13/ai-translator)
+</div>
 
-A powerful Chrome extension for translating web pages using AI, with secure and scalable backend middleware.
+<div align="center">
+<img src="assets/preview_app.png" alt="Preview App" width="800" style="border-radius: 16px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2); transform: perspective(1000px) rotateX(2deg); transition: transform 0.3s ease;">
+</div>
+
+> [!TIP]
+> **What's New**: **UI Enhancements** Added **history.html** and **history.js** to provide a dedicated translation history page.
+
+---
 
 ## ✨ Features
 
@@ -149,3 +171,5 @@ Translate single text or batch.
 - [ ] Analytics and monitoring
 
 ## 📝 [License](LICENSE)
+
+</div>
