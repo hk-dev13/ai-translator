@@ -84,7 +84,7 @@ let redis;
         const geminiKey = await getGeminiApiKey();
         const genAI = new GoogleGenerativeAI(geminiKey);
         // Pakai model flash biar cepat dan hemat
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         console.log('Gemini AI initialized');
     } catch (error) {
         console.error('Failed Gemini init (Did you create the secret?):', error.message);
