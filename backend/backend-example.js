@@ -84,7 +84,7 @@ let redis;
         const geminiKey = await getGeminiApiKey();
         const genAI = new GoogleGenerativeAI(geminiKey);
         // Pakai model flash biar cepat dan hemat
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
         console.log('Gemini AI initialized');
     } catch (error) {
         console.error('Failed Gemini init (Did you create the secret?):', error.message);
@@ -198,7 +198,7 @@ app.post('/translate', async (req, res) => {
                     try {
                         result = await translateWithGemini(t, targetLang);
                     } catch (err) {
-                        console.log('Gemini failed, fallback to Google:', err.message);
+                        console.error('Gemini failed, fallback to Google:', err.message);
                         [result] = await googleTranslate.translate(t, targetLang);
                     }
                     break;
