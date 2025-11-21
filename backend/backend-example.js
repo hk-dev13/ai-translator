@@ -159,7 +159,7 @@ async function translateWithGemini(text, targetLang) {
 
 app.post('/translate', async (req, res) => {
     const { text, texts, targetLang, provider } = req.body;
-    console.log('Translate request:', { text: text?.substring(0, 100), texts: texts?.length, targetLang, provider });
+    console.error('Translate request:', { text: text?.substring(0, 100), texts: texts?.length, targetLang, provider });
     try {
 
         // Logic untuk handle single vs batch
