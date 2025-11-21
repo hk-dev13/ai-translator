@@ -18,7 +18,7 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(helmet());
 // Ganti YOUR_EXTENSION_ID dengan ID ekstensimu jika perlu
-app.use(cors({ origin: ['chrome-extension://lnnmebafcegjhckaefmjbabocghhhend'] })); 
+app.use(cors({ origin: true })); // Allow all origins for testing
 app.use(express.json({ limit: '1mb' }));
 
 const limiter = rateLimit({
