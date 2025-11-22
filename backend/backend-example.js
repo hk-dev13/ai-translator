@@ -53,53 +53,65 @@ async function getGeminiApiKey() {
     return version.payload.data.toString();
 }
 
-// --- INITIALIZATION ---
+// --- INITIALIZATION & SERVER START ---
 
 let googleTranslate;
 let deeplTranslator;
-let geminiModel; // Variabel untuk Gemini
+let geminiModel;
 let redis;
 
-(async () => {
+// Bungkus startup dalam satu fungsi ASYNC (Kunci perbaikan Cold Start)
+async function startServer() {
+    console.log('Starting server initialization...');
+
     // 1. Google Translate
     try {
         const credentials = await getGoogleCredentials();
         googleTranslate = new Translate({ credentials });
-        console.log('Google Translate initialized');
+        console.log('✅ Google Translate initialized');
     } catch (error) {
-        console.error('Failed Google Translate init:', error.message);
+        console.error('❌ Failed Google Translate init:', error.message);
     }
 
     // 2. DeepL
     try {
         const deeplApiKey = await getDeepLApiKey();
         deeplTranslator = new deepl.Translator(deeplApiKey);
-        console.log('DeepL initialized');
+        console.log('✅ DeepL initialized');
     } catch (error) {
-        console.error('Failed DeepL init:', error.message);
+        console.error('❌ Failed DeepL init:', error.message);
     }
 
-    // 3. Gemini AI (Baru)
+    // 3. Gemini AI
     try {
         const geminiKey = await getGeminiApiKey();
         const genAI = new GoogleGenerativeAI(geminiKey);
-        // Pakai model flash biar cepat dan hemat
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        console.log('Gemini AI initialized');
+        
+        // SAYA KEMBALIKAN KE VERSI PILIHAN ANDA
+        // Pastikan string model ini valid di Google Cloud Console region Anda
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+        
+        console.log('✅ Gemini AI initialized (Model: gemini-2.5-flash)');
     } catch (error) {
-        console.error('Failed Gemini init (Did you create the secret?):', error.message);
+        console.error('❌ Failed Gemini init:', error.message);
     }
 
     // 4. Redis
     try {
         redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-        console.log('Redis connected');
+        console.log('✅ Redis connected');
     } catch (error) {
-        console.error('Failed Redis connection:', error.message);
+        console.error('❌ Failed Redis connection:', error.message);
     }
 
-    console.log('Backend initialization complete');
-})();
+    console.log('Initialization complete. Starting HTTP server...');
+
+    // --- FIX UTAMA: Server baru "Open" setelah semua kunci diambil ---
+    app.listen(port, () => console.log(`🚀 Backend listening on port ${port}`));
+}
+
+// Panggil fungsi utama
+startServer();
 
 // --- HELPER FUNCTIONS ---
 
@@ -143,12 +155,21 @@ async function translateWithDeepL(text, targetLang, timeout = 5000) {
     });
 }
 
-// Helper Gemini (Baru)
+// Helper Gemini
 async function translateWithGemini(text, targetLang) {
     if (!geminiModel) throw new Error("Gemini model not ready");
     
-    // Prompt engineering sederhana agar outputnya hanya terjemahan
-    const prompt = `Translate the following text to language code '${targetLang}'. Output ONLY the translated text, no explanations. Text: "${text}"`;
+    // Prompt disesuaikan agar efisien
+    const prompt = `
+Role: Professional Translator.
+Task: Translate the following text to language code '${targetLang}'.
+Rules:
+1. Maintain the original tone (formal/informal).
+2. Do not output anything other than the translation.
+3. If the text is an idiom, translate the meaning, not the words literally.
+
+Text: "${text}"
+`;
     
     const result = await geminiModel.generateContent(prompt);
     const response = await result.response;
@@ -159,48 +180,61 @@ async function translateWithGemini(text, targetLang) {
 
 app.post('/translate', async (req, res) => {
     const { text, texts, targetLang, provider } = req.body;
-    console.error('Translate request:', { text: text?.substring(0, 100), texts: texts?.length, targetLang, provider });
-    try {
+    
+    // Uncomment ini jika mau debug request masuk
+    // console.log('Req:', { provider, targetLang, len: texts ? texts.length : 1 });
 
-        // Logic untuk handle single vs batch
+    try {
+        // SAFETY CHECK: Pastikan provider sudah siap sebelum dipanggil
+        if (provider === 'google' && !googleTranslate) throw new Error('Google Provider not ready (Check API Key)');
+        if (provider === 'deepl' && !deeplTranslator) throw new Error('DeepL Provider not ready');
+        if ((provider === 'gemini' || provider === 'openai') && !geminiModel) throw new Error('Gemini Provider not ready');
+
         const inputs = texts ? texts : [text];
         
-        // Validasi
+        // Validasi dan Filter input kosong
+        const validInputs = inputs.filter(t => t && typeof t === 'string');
+        if (validInputs.length === 0) throw new Error('No valid text to translate');
+
         if (texts && (!Array.isArray(texts) || texts.length > 100)) {
              throw new Error('texts must be array with max 100 items');
         }
-        inputs.forEach(t => validateInput(t, targetLang, provider));
 
         // Proses Translasi (Parallel)
         const results = await Promise.all(inputs.map(async (t) => {
-            // Cek Cache
+            if (!t) return ""; 
+
             const cacheKey = `translate:${t}:${targetLang}:${provider}`;
             let cached = await getCache(cacheKey);
             if (cached) return cached;
 
             let result;
-            // Switch Provider Logic
+            
             switch (provider) {
                 case 'google':
-                    [result] = await googleTranslate.translate(t, targetLang);
+                    let googleRes = await googleTranslate.translate(t, targetLang);
+                    result = googleRes[0]; 
                     break;
                 
                 case 'deepl':
                     try {
                         result = await translateWithDeepL(t, targetLang);
                     } catch (err) {
-                        console.log('DeepL failed, fallback to Google');
-                        [result] = await googleTranslate.translate(t, targetLang);
+                        console.warn('DeepL failed, fallback to Google');
+                        let fallback = await googleTranslate.translate(t, targetLang);
+                        result = fallback[0];
                     }
                     break;
                 
-                case 'openai': // Fallback: User pilih OpenAI di UI -> Kita pakai Gemini di Backend
+                case 'openai': // Fallback UI OpenAI -> Gemini Backend
                 case 'gemini':
                     try {
                         result = await translateWithGemini(t, targetLang);
                     } catch (err) {
-                        console.error('Gemini failed, fallback to Google:', err.message);
-                        [result] = await googleTranslate.translate(t, targetLang);
+                        // Fallback logik
+                        console.warn(`Gemini (${provider}) failed: ${err.message}. Fallback to Google.`);
+                        let fallback = await googleTranslate.translate(t, targetLang);
+                        result = fallback[0];
                     }
                     break;
                 
@@ -208,7 +242,6 @@ app.post('/translate', async (req, res) => {
                     throw new Error(`Unsupported provider: ${provider}`);
             }
 
-            // Simpan Cache
             await setCache(cacheKey, result);
             return result;
         }));
@@ -220,11 +253,9 @@ app.post('/translate', async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Translation error:', error);
-        res.status(400).json({ error: error.message });
+        console.error('Translation error:', error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.get('/', (req, res) => res.send('Translation Backend is running'));
-
-app.listen(port, () => console.log(`Backend listening on port ${port}`));
